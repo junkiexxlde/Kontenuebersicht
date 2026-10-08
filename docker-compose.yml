@@ -1,0 +1,14 @@
+services:
+  kontenuebersicht:
+    build: .
+    container_name: kontenuebersicht
+    network_mode: host
+    restart: unless-stopped
+    environment:
+      HOST: 127.0.0.1
+      DATA_DIR: /app/data
+    volumes:
+      - kontenuebersicht-data:/app/data
+
+volumes:
+  kontenuebersicht-data:

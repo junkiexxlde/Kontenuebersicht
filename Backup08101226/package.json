@@ -1,0 +1,13 @@
+{
+  "name": "kontenuebersicht",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A local HTTPS vault for European bank account details",
+  "scripts": {
+    "start": "sh docker/entrypoint.sh",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
