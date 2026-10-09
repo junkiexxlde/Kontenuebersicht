@@ -1,10 +1,9 @@
 const app = document.querySelector("#app");
 const toastRegion = document.querySelector("#toast-region");
 const translations = {
-  "Your accounts.": "Ihre Konten.",
-  "Under your key.": "Unter Ihrem Schutz.",
+  "Store your bank details in one central place. Make internal transfers and savings-account hopping easier.": "Speichern Sie Ihre Bankdaten an einem zentralen Ort. Erleichtern Sie sich interne Überweisungen und das Tagesgeld-Hopping.",
   "A private, encrypted place for your European bank account details. Only your master password can open the vault.": "Ein privater, verschlüsselter Ort für Ihre europäischen Bankdaten. Nur Ihr Masterpasswort öffnet den Tresor.",
-  "Private by design · Encrypted on this device": "Privat konzipiert · Auf diesem Gerät verschlüsselt",
+  "Private by design · Encrypted": "Privat konzipiert · Verschlüsselt",
   "A safer place for your details": "Ein sicherer Ort für Ihre Daten",
   "Welcome back": "Willkommen zurück",
   "Create your account": "Benutzerkonto erstellen",
@@ -22,6 +21,11 @@ const translations = {
   "Already have an account? Sign in": "Sie haben bereits ein Konto? Anmelden",
   "New here? Create an account": "Neu hier? Benutzerkonto erstellen",
   "Create your master password": "Masterpasswort erstellen",
+  "Choose your banks": "Wählen Sie Ihre Banken",
+  "Choose up to 5 banks to prefill your account list.": "Wählen Sie bis zu 5 Banken aus, um Ihre Kontenliste vorauszufüllen.",
+  "Selected": "Ausgewählt",
+  "Bank selected": "Bank ausgewählt",
+  "Select up to 5 supported banks.": "Wählen Sie bis zu 5 unterstützte Banken aus.",
   "Unlock your private vault": "Privaten Tresor entsperren",
   "Your account is ready. Create a separate master password to encrypt your bank details.": "Ihr Benutzerkonto ist bereit. Erstellen Sie ein separates Masterpasswort, um Ihre Bankdaten zu verschlüsseln.",
   "Enter your master password to decrypt your private bank details.": "Geben Sie Ihr Masterpasswort ein, um Ihre privaten Bankdaten zu entschlüsseln.",
@@ -212,6 +216,8 @@ const state = {
   hasUsers: false,
   authenticated: false,
   hasMasterPassword: false,
+  bankCatalog: [],
+  selectedBankIds: [],
   unlocked: false,
   user: null,
   authMode: "register",
@@ -374,6 +380,19 @@ function renderAuth() {
     "master-setup": "Your account is ready. Create a separate master password to encrypt your bank details.",
     unlock: "Enter your master password to decrypt your private bank details.",
   }[stage];
+  const showBankPicker = stage === "master-setup" && state.bankCatalog.length > 0;
+  const bankPicker = showBankPicker ? `
+    <section class="bank-onboarding" aria-labelledby="bank-onboarding-title">
+      <h2 id="bank-onboarding-title">${t("Choose your banks")}</h2>
+      <p>${t("Choose up to 5 banks to prefill your account list.")}</p>
+      <div class="bank-onboarding-count" aria-live="polite">${t("Selected")}: <span id="bank-selection-count">${state.selectedBankIds.length}</span> / 5</div>
+      <div class="bank-choice-list">${state.bankCatalog.map((bank) => `
+        <label class="bank-choice" for="bank-choice-${escapeHtml(bank.id)}">
+          <span class="bank-choice-logo" aria-hidden="true"><span>${escapeHtml(bank.name.slice(0, 1).toUpperCase())}</span><img src="${escapeHtml(bank.faviconUrl)}" alt="" loading="lazy" referrerpolicy="no-referrer"></span>
+          <span class="bank-choice-name">${escapeHtml(bank.name)}</span>
+          <input id="bank-choice-${escapeHtml(bank.id)}" type="checkbox" data-bank-id="${escapeHtml(bank.id)}" ${state.selectedBankIds.includes(bank.id) ? "checked" : ""}>
+        </label>`).join("")}</div>
+    </section>` : "";
   let fields;
   if (stage === "register") {
     fields = `
@@ -410,10 +429,11 @@ function renderAuth() {
       <section class="auth-aside">
         <div class="auth-brand"><span class="brand-mark">K</span><span>${t("Account overview")}</span></div>
         <div class="auth-copy">
-          <h1>${t("Your accounts.")}<br>${t("Under your key.")}</h1>
+          <h1>${t("Store your bank details in one central place. Make internal transfers and savings-account hopping easier.")}</h1>
           <p>${t("A private, encrypted place for your European bank account details. Only your master password can open the vault.")}</p>
+          ${bankPicker}
         </div>
-        <div class="auth-foot">${t("Private by design · Encrypted on this device")}</div>
+        <div class="auth-foot">${t("Private by design · Encrypted")}</div>
       </section>
       <section class="auth-panel">
         ${renderPreferenceControls()}
@@ -432,6 +452,7 @@ function renderAuth() {
     </main>`;
 
   document.querySelector("#auth-form").addEventListener("submit", handleAuth);
+  bindBankPicker();
   document.querySelector("[data-toggle='master-password']")?.addEventListener("click", togglePassword);
   document.querySelector("#auth-switch")?.addEventListener("click", () => {
     state.authMode = stage === "register" ? "login" : "register";
@@ -439,6 +460,39 @@ function renderAuth() {
     renderAuth();
   });
   bindPreferenceControls();
+}
+
+function bindBankPicker() {
+  document.querySelectorAll("[data-bank-id]").forEach((checkbox) => {
+    const image = checkbox.closest(".bank-choice").querySelector("img");
+    image.addEventListener("load", () => image.parentElement.classList.add("has-logo"), { once: true });
+    image.addEventListener("error", () => image.remove(), { once: true });
+    if (image.complete) {
+      if (image.naturalWidth > 0) image.parentElement.classList.add("has-logo");
+      else image.remove();
+    }
+    checkbox.addEventListener("change", () => {
+      const bankId = checkbox.dataset.bankId;
+      if (checkbox.checked) {
+        if (state.selectedBankIds.length >= 5) {
+          checkbox.checked = false;
+          return;
+        }
+        state.selectedBankIds.push(bankId);
+      } else {
+        state.selectedBankIds = state.selectedBankIds.filter((id) => id !== bankId);
+      }
+      const atLimit = state.selectedBankIds.length >= 5;
+      document.querySelectorAll("[data-bank-id]").forEach((choice) => {
+        choice.disabled = atLimit && !choice.checked;
+      });
+      document.querySelector("#bank-selection-count").textContent = String(state.selectedBankIds.length);
+    });
+  });
+  const atLimit = state.selectedBankIds.length >= 5;
+  document.querySelectorAll("[data-bank-id]").forEach((checkbox) => {
+    checkbox.disabled = atLimit && !checkbox.checked;
+  });
 }
 
 function renderWorkspace() {
@@ -636,9 +690,13 @@ async function handleAuth(event) {
       unlock: ["/api/master-password/unlock", { password }],
     };
     const [route, body] = routes[stage];
+    if (stage === "master-setup") body.bankIds = state.selectedBankIds;
     await api(route, { method: "POST", body });
     await refreshSession();
-    if (state.unlocked) await loadAccounts();
+    if (state.unlocked) {
+      await loadAccounts();
+      state.selectedBankIds = [];
+    }
     render();
   } catch (error) {
     errorRegion.innerHTML = `<div class="error-message">${escapeHtml(t(error.message))}</div>`;
@@ -653,7 +711,11 @@ async function handleAuth(event) {
 }
 
 async function refreshSession() {
-  const session = await api("/api/session");
+  const [session, { banks }] = await Promise.all([
+    api("/api/session"),
+    api("/api/banks"),
+  ]);
+  state.bankCatalog = banks;
   state.hasUsers = session.hasUsers;
   state.authenticated = session.authenticated;
   state.hasMasterPassword = session.hasMasterPassword;
