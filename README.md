@@ -12,6 +12,8 @@ docker compose up --build -d
 
 Open **https://localhost:4005** and register a user. The email address is checked for valid syntax and uniqueness; it is not verified by email. Account passwords must be at least 8 characters. Each user separately creates a master password of at least 12 characters; the master password cannot be recovered if lost.
 
+During a new user's first master-password setup, they can select up to five banks from the starter list. Each selection creates an encrypted account entry with the bank name as both account name and bank, plus its listed BIC/SWIFT. Other account details can be filled in later. Bank icons are loaded directly from each bank's website and may be unavailable.
+
 If a legacy single-user `vault.json` exists, it is migrated to the first registered user's separate vault. That user unlocks it with the existing master password. Other new users start with an empty vault and create their own master password.
 
 The server binds to `127.0.0.1`. Its account registry, per-user encrypted vaults, settings, and TLS files live in the `kontenuebersicht-data` Docker volume. Do not run `docker compose down -v` unless you intend to delete that data.

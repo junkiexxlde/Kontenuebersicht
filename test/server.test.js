@@ -159,6 +159,10 @@ test("HTTPS multi-user registration, vault isolation, encrypted CRUD, and master
   let port = initialPort;
   let response = await request(port, "/api/session");
   assert.equal(response.body.hasUsers, false);
+  response = await request(port, "/api/banks");
+  assert.equal(response.status, 200);
+  assert.ok(response.body.banks.length >= 20);
+  assert.ok(response.body.banks.some((bank) => bank.id === "ing-germany"));
 
   response = await request(port, "/api/register", {
     method: "POST",
@@ -245,11 +249,25 @@ test("HTTPS multi-user registration, vault isolation, encrypted CRUD, and master
   response = await request(port, "/api/master-password/setup", {
     method: "POST",
     cookie: secondCookie,
-    body: { password: "bob separate master password" },
+    body: { password: "bob separate master password", bankIds: ["deutsche-bank", "commerzbank", "dkb", "n26", "ing-germany", "abn-amro"] },
+  });
+  assert.equal(response.status, 400);
+  response = await request(port, "/api/master-password/setup", {
+    method: "POST",
+    cookie: secondCookie,
+    body: { password: "bob separate master password", bankIds: ["ing-germany", "n26"] },
   });
   assert.equal(response.status, 201);
   response = await request(port, "/api/accounts", { cookie: secondCookie });
-  assert.deepEqual(response.body.accounts, []);
+  assert.equal(response.body.accounts.length, 2);
+  assert.deepEqual(response.body.accounts.map((entry) => entry.bankName).sort(), ["ING Deutschland", "N26"].sort());
+  const ingAccount = response.body.accounts.find((entry) => entry.bankName === "ING Deutschland");
+  response = await request(port, `/api/accounts/${ingAccount.id}`, { cookie: secondCookie });
+  assert.equal(response.body.account.accountName, "ING Deutschland");
+  assert.equal(response.body.account.bankName, "ING Deutschland");
+  assert.equal(response.body.account.bic, "INGDDEFFXXX");
+  assert.equal(response.body.account.iban, "");
+  assert.equal(response.body.account.username, "");
   response = await request(port, `/api/accounts/${accountId}`, { cookie: secondCookie });
   assert.equal(response.status, 404);
   const secondVault = await fs.readFile(path.join(dataDir, "users", secondUser.id, "vault.json"), "utf8");

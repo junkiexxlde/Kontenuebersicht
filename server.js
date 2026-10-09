@@ -16,6 +16,32 @@ const CERT_PATH = path.join(DATA_DIR, "cert.pem");
 const KEY_PATH = path.join(DATA_DIR, "key.pem");
 const SESSION_MAX_AGE_MS = 15 * 60 * 1000;
 const MAX_BODY_BYTES = 1024 * 1024;
+const BANK_CATALOG = [
+  { id: "deutsche-bank", name: "Deutsche Bank", bic: "DEUTDEFFXXX", domain: "deutsche-bank.de" },
+  { id: "commerzbank", name: "Commerzbank", bic: "COBADEFFXXX", domain: "commerzbank.de" },
+  { id: "ing-germany", name: "ING Deutschland", bic: "INGDDEFFXXX", domain: "ing.de" },
+  { id: "dkb", name: "Deutsche Kreditbank (DKB)", bic: "BYLADEM1001", domain: "dkb.de" },
+  { id: "n26", name: "N26", bic: "NTSBDEB1XXX", domain: "n26.com" },
+  { id: "erste-bank", name: "Erste Bank", bic: "GIBAATWWXXX", domain: "sparkasse.at" },
+  { id: "raiffeisen-austria", name: "Raiffeisen Bank", bic: "RZBAATWW", domain: "raiffeisen.at" },
+  { id: "bnp-paribas", name: "BNP Paribas", bic: "BNPAFRPPXXX", domain: "mabanque.bnpparibas" },
+  { id: "societe-generale", name: "Société Générale", bic: "SOGEFRPP", domain: "particuliers.sg.fr" },
+  { id: "credit-agricole", name: "Crédit Agricole", bic: "AGRIFRPPXXX", domain: "credit-agricole.fr" },
+  { id: "ing-netherlands", name: "ING", bic: "INGBNL2A", domain: "ing.nl" },
+  { id: "abn-amro", name: "ABN AMRO", bic: "ABNANL2A", domain: "abnamro.nl" },
+  { id: "rabobank", name: "Rabobank", bic: "RABONL2U", domain: "rabobank.nl" },
+  { id: "santander-spain", name: "Santander", bic: "BSCHESMMXXX", domain: "bancosantander.es" },
+  { id: "bbva", name: "BBVA", bic: "BBVAESMMXXX", domain: "bbva.es" },
+  { id: "caixabank", name: "CaixaBank", bic: "CAIXESBBXXX", domain: "caixabank.es" },
+  { id: "unicredit", name: "UniCredit", bic: "UNCRITMM", domain: "unicredit.it" },
+  { id: "intesa-sanpaolo", name: "Intesa Sanpaolo", bic: "BCITITMM", domain: "intesasanpaolo.com" },
+  { id: "kbc", name: "KBC", bic: "KREDBEBB", domain: "kbc.be" },
+  { id: "aib", name: "AIB", bic: "AIBKIE2D", domain: "aib.ie" },
+  { id: "bank-of-ireland", name: "Bank of Ireland", bic: "BOFIIE2D", domain: "bankofireland.com" },
+  { id: "nordea-finland", name: "Nordea", bic: "NDEAFIHH", domain: "nordea.fi" },
+  { id: "caixa-geral", name: "Caixa Geral de Depósitos", bic: "CGDIPTPL", domain: "cgd.pt" },
+  { id: "bil", name: "Banque Internationale à Luxembourg", bic: "BILLLULL", domain: "bil.com" },
+];
 const scrypt = promisify(crypto.scrypt);
 const sessions = new Map();
 const loginFailures = new Map();
@@ -528,6 +554,18 @@ async function handleRequest(req, res) {
     }
     const route = `${req.method} ${url.pathname}`;
 
+    if (route === "GET /api/banks") {
+      sendJson(res, 200, {
+        banks: BANK_CATALOG.map(({ id, name, bic, domain }) => ({
+          id,
+          name,
+          bic,
+          faviconUrl: `https://${domain}/favicon.ico`,
+        })),
+      });
+      return;
+    }
+
     if (route === "GET /api/session") {
       pruneSessions();
       const active = getSession(req);
@@ -611,10 +649,34 @@ async function handleRequest(req, res) {
         if (await userVaultExists(active.session.userId)) return false;
         const body = await readBody(req);
         validatePassword(body.password);
+        const bankIds = body.bankIds ?? [];
+        if (!Array.isArray(bankIds) || bankIds.length > 5
+          || bankIds.some((id) => typeof id !== "string" || !BANK_CATALOG.some((bank) => bank.id === id))
+          || new Set(bankIds).size !== bankIds.length) {
+          throw Object.assign(new Error("Select up to 5 supported banks."), { status: 400 });
+        }
+        const now = new Date().toISOString();
+        const accounts = bankIds.map((id) => {
+          const bank = BANK_CATALOG.find((entry) => entry.id === id);
+          return {
+            id: crypto.randomUUID(),
+            accountName: bank.name,
+            holderName: "",
+            bankName: bank.name,
+            iban: "",
+            bic: bank.bic,
+            onlineBankingUrl: "",
+            username: "",
+            password: "",
+            notes: "",
+            createdAt: now,
+            updatedAt: now,
+          };
+        });
         const salt = crypto.randomBytes(16);
         const key = await deriveKey(body.password, salt);
         try {
-          await saveUserVault(active.session.userId, { accounts: [] }, key, salt);
+          await saveUserVault(active.session.userId, { accounts }, key, salt);
         } catch (error) {
           key.fill(0);
           throw error;

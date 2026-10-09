@@ -38,8 +38,23 @@ button { cursor: pointer; }
 .auth-brand, .brand-lockup { display: flex; align-items: center; gap: 12px; font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif; font-weight: 800; letter-spacing: -.04em; }
 .auth-brand .brand-mark { color: #173a3d; background: #b9e8da; }
 .auth-copy { max-width: 500px; margin: 12vh 0; }
-.auth-copy h1 { margin: 0 0 20px; font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif; font-size: clamp(38px, 5vw, 64px); line-height: 1.05; letter-spacing: -.06em; }
+.auth-copy h1 { margin: 0 0 20px; font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif; font-size: clamp(32px, 3.8vw, 48px); line-height: 1.12; letter-spacing: -.05em; }
 .auth-copy p { max-width: 420px; color: #b6ccca; font-size: 17px; line-height: 1.7; }
+.bank-onboarding { max-width: 500px; margin-top: 24px; }
+.bank-onboarding h2 { margin: 0; font-size: 15px; }
+.bank-onboarding > p { margin: 6px 0 10px; color: #b6ccca; font-size: 12px; line-height: 1.5; }
+.bank-onboarding-count { margin-bottom: 7px; color: #b6ccca; font-size: 11px; }
+.bank-onboarding-count span { color: #fff; font-weight: 700; }
+.bank-choice-list { display: grid; max-height: min(34vh, 320px); gap: 5px; overflow-y: auto; padding: 3px 5px 3px 0; scrollbar-color: #568082 transparent; }
+.bank-choice { display: flex; min-height: 42px; align-items: center; gap: 10px; padding: 5px 9px; border: 1px solid rgba(210, 232, 228, .2); border-radius: 8px; background: rgba(255, 255, 255, .055); cursor: pointer; }
+.bank-choice:hover { border-color: rgba(185, 232, 218, .7); background: rgba(255, 255, 255, .1); }
+.bank-choice:has(input:checked) { border-color: #9ed5c9; background: rgba(185, 232, 218, .15); }
+.bank-choice-logo { position: relative; display: grid; width: 28px; height: 28px; flex: 0 0 28px; place-items: center; overflow: hidden; border-radius: 7px; background: #e8f1ef; color: #24545a; font-size: 12px; font-weight: 800; }
+.bank-choice-logo.has-logo span { display: none; }
+.bank-choice-logo img { position: absolute; inset: 0; width: 100%; height: 100%; padding: 4px; background: #fff; object-fit: contain; }
+.bank-choice-name { min-width: 0; flex: 1; overflow: hidden; color: #f2f8f7; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.bank-choice input { width: 17px; height: 17px; margin: 0; accent-color: #71c8b7; }
+.bank-choice input:disabled { cursor: not-allowed; opacity: .45; }
 .auth-foot { color: #91aaa9; font-size: 12px; }
 .auth-panel { display: grid; place-items: center; padding: 40px 28px; }
 .auth-panel { position: relative; }
@@ -213,7 +228,7 @@ button { cursor: pointer; }
   .auth-layout { grid-template-columns: 1fr; }
   .auth-aside { min-height: 250px; padding: 24px; }
   .auth-copy { margin: 34px 0 12px; }
-  .auth-copy h1 { max-width: 430px; font-size: 40px; }
+  .auth-copy h1 { max-width: 430px; font-size: 34px; }
   .auth-copy p { margin-bottom: 0; font-size: 14px; }
   .auth-foot { display: none; }
   .auth-panel { align-items: start; padding: 24px 16px 40px; }
@@ -285,6 +300,7 @@ html[data-theme="dark"] .field select,
 html[data-theme="dark"] .btn-secondary,
 html[data-theme="dark"] .logout-button,
 html[data-theme="dark"] .preference-button { background: var(--white); color: var(--ink); }
+html[data-theme="dark"] .bank-choice { border-color: rgba(210, 232, 228, .25); background: rgba(255, 255, 255, .07); }
 html[data-theme="dark"] .field label,
 html[data-theme="dark"] .account-main strong,
 html[data-theme="dark"] .account-cell strong,
